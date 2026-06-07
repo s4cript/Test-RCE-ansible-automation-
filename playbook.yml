@@ -1,36 +1,25 @@
 ---
-- name: Recon - container vs host
+- name: Recon - sockets and egress only
   hosts: all
   gather_facts: false
   tasks:
-    - name: Container markers
+    - name: Check sensitive sockets
       ansible.builtin.shell: |
-        ls -la /.dockerenv /run/.containerenv 2>/dev/null
-        echo "PID1: $(cat /proc/1/comm)"
-      register: markers
-      changed_when: false
-
-    - name: Mounts (short - mountpoint + type only)
-      ansible.builtin.shell: "mount | awk '{print $1, $3, $5}'"
-      register: mounts
-      changed_when: false
-
-    - name: Sensitive sockets / bind targets
-      ansible.builtin.shell: |
-        ls -la /var/run/docker.sock /run/docker.sock /run/podman/podman.sock 2>/dev/null || echo "no sockets found"
-        echo "--- receptor? ---"; ls -la /var/run/receptor 2>/dev/null || echo "none"
+        echo "docker.sock:"; ls -la /var/run/docker.sock /run/docker.sock 2>/dev/null || echo "  none"
+        echo "podman.sock:"; ls -la /run/podman/podman.sock 2>/dev/null || echo "  none"
+        echo "receptor:"; ls -la /var/run/receptor /run/receptor 2>/dev/null || echo "  none"
       register: sockets
       changed_when: false
 
+    - name: Show sockets
+      ansible.builtin.debug:
+        var: sockets.stdout_lines
+
     - name: Outbound connectivity test
-      ansible.builtin.shell: "curl -s -o /dev/null -w 'HTTP:%{http_code} IP:%{remote_ip}' https://google.com || echo 'NO EGRESS'"
+      ansible.builtin.shell: "curl -s -o /dev/null -w 'HTTP:%{http_code} IP:%{remote_ip} TIME:%{time_total}s' https://google.com || echo 'NO EGRESS'"
       register: egress
       changed_when: false
 
-    - name: Results
+    - name: Show egress
       ansible.builtin.debug:
-        msg:
-          - "MARKERS: {{ markers.stdout_lines }}"
-          - "MOUNTS: {{ mounts.stdout_lines }}"
-          - "SOCKETS: {{ sockets.stdout_lines }}"
-          - "EGRESS: {{ egress.stdout }}"
+        var: egress.stdout
