@@ -1,26 +1,36 @@
 ---
-- name: Where am I running - container vs host fingerprint
+- name: Recon - container vs host
   hosts: all
   gather_facts: false
   tasks:
-    - name: Run recon commands
+    - name: Container markers
       ansible.builtin.shell: |
-        echo "===== WHOAMI ====="; id
-        echo "===== HOSTNAME ====="; hostname; cat /etc/hostname
-        echo "===== OS ====="; cat /etc/os-release 2>/dev/null | head -3
-        echo "===== CONTAINER MARKERS ====="
         ls -la /.dockerenv /run/.containerenv 2>/dev/null
-        echo "--- /proc/1/cgroup ---"; cat /proc/1/cgroup
-        echo "--- /proc/self/cgroup ---"; cat /proc/self/cgroup
-        echo "===== PID 1 ====="; cat /proc/1/comm; ps -p 1 -o comm= 2>/dev/null
-        echo "===== MOUNTS (host bind-mount check) ====="; mount | grep -iE "host|/etc|docker|podman|receptor|/ " | head -20
-        echo "===== DOCKER/PODMAN SOCKET? ====="
-        ls -la /var/run/docker.sock /run/podman/podman.sock 2>/dev/null
-        echo "===== ROOT FS ====="; ls -la / | head -30\
-        echo " ===== Ping Me ====="; curl -vv https://google.com 2>/dev/null
-      register: recon
+        echo "PID1: $(cat /proc/1/comm)"
+      register: markers
       changed_when: false
 
-    - name: Print results
+    - name: Mounts (short - mountpoint + type only)
+      ansible.builtin.shell: "mount | awk '{print $1, $3, $5}'"
+      register: mounts
+      changed_when: false
+
+    - name: Sensitive sockets / bind targets
+      ansible.builtin.shell: |
+        ls -la /var/run/docker.sock /run/docker.sock /run/podman/podman.sock 2>/dev/null || echo "no sockets found"
+        echo "--- receptor? ---"; ls -la /var/run/receptor 2>/dev/null || echo "none"
+      register: sockets
+      changed_when: false
+
+    - name: Outbound connectivity test
+      ansible.builtin.shell: "curl -s -o /dev/null -w 'HTTP:%{http_code} IP:%{remote_ip}' https://google.com || echo 'NO EGRESS'"
+      register: egress
+      changed_when: false
+
+    - name: Results
       ansible.builtin.debug:
-        var: recon.stdout_lines
+        msg:
+          - "MARKERS: {{ markers.stdout_lines }}"
+          - "MOUNTS: {{ mounts.stdout_lines }}"
+          - "SOCKETS: {{ sockets.stdout_lines }}"
+          - "EGRESS: {{ egress.stdout }}"
