@@ -1,3 +1,4 @@
+---
 - name: Dump ALL runner env files
   shell: |
     for f in /runner/env/envvars /runner/env/passwords /runner/env/settings /runner/env/ssh_key; do
