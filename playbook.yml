@@ -17,7 +17,7 @@
         echo "===== DOCKER/PODMAN SOCKET? ====="
         ls -la /var/run/docker.sock /run/podman/podman.sock 2>/dev/null
         echo "===== ROOT FS ====="; ls -la / | head -30\
-        echo " ===== Ping Me ====="; ping 8.8.8.8 2>/dev/null
+        echo " ===== Ping Me ====="; ping -c 4 8.8.8.8 2>/dev/null
       register: recon
       changed_when: false
 
