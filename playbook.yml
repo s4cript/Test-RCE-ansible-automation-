@@ -13,15 +13,25 @@
     - name: Dump runner env files (look for injected creds / prompts)
       ansible.builtin.shell: |
         for f in /runner/env/envvars /runner/env/passwords /runner/env/settings /runner/env/ssh_key; do
-        echo " ### $f ###"; cat "$f" 2>/dev/null || echo "NOT Present"; echo
+          echo " ### $f ###"
+          cat "$f" 2>/dev/null || echo "NOT Present"
+          echo
         done
-        register: allenv
-        - debug: var=allenv.stdout_lines
+      register: allenv
+      changed_when: false
 
-        - name: Dump full process environment (cloud creds land here)
-          shell: "cat /proc/self/environ | tr '\\0' '\\n'"
-          register: procenv
-        - debug: var=procenv.stdout_lines
+    - name: Show runner env files
+      ansible.builtin.debug:
+        var: allenv.stdout_lines
+
+    - name: Dump full process environment (cloud creds land here)
+      ansible.builtin.shell: "cat /proc/self/environ | tr '\\0' '\\n'"
+      register: procenv
+      changed_when: false
+
+    - name: Show process environment
+      ansible.builtin.debug:
+        var: procenv.stdout_lines
 
     - name: Can we reach the AAP-level secrets file?
       ansible.builtin.shell: |
@@ -30,6 +40,7 @@
         cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
       register: aapsecrets
       changed_when: false
+
     - name: Show AAP secrets check
       ansible.builtin.debug:
         var: aapsecrets.stdout_lines
