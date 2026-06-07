@@ -1,0 +1,12 @@
+---
+- name: Run id command
+  hosts: all
+  become: true      # شيّل هذا السطر إذا ما تبي يشتغل كـ root
+  tasks:
+    - name: Run id and capture output
+      ansible.builtin.command: id
+      register: id_result
+
+    - name: Print the result
+      ansible.builtin.debug:
+        var: id_result.stdout

