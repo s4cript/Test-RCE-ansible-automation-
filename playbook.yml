@@ -1,12 +1,25 @@
 ---
-- name: Run id command
+- name: Where am I running - container vs host fingerprint
   hosts: all
-  become: true      # شيّل هذا السطر إذا ما تبي يشتغل كـ root
+  gather_facts: false
   tasks:
-    - name: Run id and capture output
-      ansible.builtin.command: id
-      register: id_result
+    - name: Run recon commands
+      ansible.builtin.shell: |
+        echo "===== WHOAMI ====="; id
+        echo "===== HOSTNAME ====="; hostname; cat /etc/hostname
+        echo "===== OS ====="; cat /etc/os-release 2>/dev/null | head -3
+        echo "===== CONTAINER MARKERS ====="
+        ls -la /.dockerenv /run/.containerenv 2>/dev/null
+        echo "--- /proc/1/cgroup ---"; cat /proc/1/cgroup
+        echo "--- /proc/self/cgroup ---"; cat /proc/self/cgroup
+        echo "===== PID 1 ====="; cat /proc/1/comm; ps -p 1 -o comm= 2>/dev/null
+        echo "===== MOUNTS (host bind-mount check) ====="; mount | grep -iE "host|/etc|docker|podman|receptor|/ " | head -20
+        echo "===== DOCKER/PODMAN SOCKET? ====="
+        ls -la /var/run/docker.sock /run/podman/podman.sock 2>/dev/null
+        echo "===== ROOT FS ====="; ls -la / | head -30
+      register: recon
+      changed_when: false
 
-    - name: Print the result
+    - name: Print results
       ansible.builtin.debug:
-        var: id_result.stdout
+        var: recon.stdout_lines
