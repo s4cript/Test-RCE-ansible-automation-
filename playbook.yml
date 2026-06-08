@@ -28,7 +28,7 @@
     - name: Reachability of in-scope infra nodes from EE
       ansible.builtin.shell: |
         for h in 10.10.60.37 10.10.60.38 10.10.60.42 10.10.60.43 10.10.60.46 10.10.60.49; do
-          for p in 22 5432 443; do
+          for p in 22 5432 443 80 8080 8888; do
             echo -n "$h:$p -> "
             timeout 2 bash -c "echo > /dev/tcp/$h/$p" 2>/dev/null && echo "OPEN" || echo "closed/filtered"
           done
