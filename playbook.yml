@@ -28,8 +28,8 @@
         ls -la /runner/artifacts/5588/ssh_key_data
         echo "Recon Folders"
         ls -la /runner
-        ls -la /runner/artifacts/5608
-        ls -la /runner/artifacts/5608/project
+        ls -la /runner/artifacts/5610
+        ls -la /runner/artifacts/5610/inventory
         
       register: aapsecrets
       changed_when: false
