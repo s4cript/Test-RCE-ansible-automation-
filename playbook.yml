@@ -24,13 +24,13 @@
         ls -la /etc/ansible-automation-platform/ 2>/dev/null || echo "NOT MOUNTED IN EE"
         echo "--- try .secrets.yaml ---"
         cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
-        cat /runner/artifacts/5576/ssh_key_data 2>/dev/null || echo "NOT ACCESSIBLE"
-        ls -la /runner/artifacts/5576/ssh_key_data
+        cat /runner/artifacts/5588/ssh_key_data 2>/dev/null || echo "NOT ACCESSIBLE"
+        ls -la /runner/artifacts/5588/ssh_key_data
         echo "Recon Folders"
         ls -la /runner
-        ls -la /runner/artifacts/5584
-        cat /runner/atrifacts/5584/env.list
-        cat /runner/atrifacts/5584/collections.json
+        ls -la /runner/artifacts/5588
+        cat /runner/atrifacts/5588/env.list
+        cat /runner/atrifacts/5588/collections.json
         
       register: aapsecrets
       changed_when: false
