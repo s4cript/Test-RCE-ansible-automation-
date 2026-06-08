@@ -29,7 +29,9 @@
         echo "Recon Folders"
         ls -la /runner
         ls -la /runner/artifacts/5594
-        
+        ls -la /runner/artifacts/5594/inventory
+        ls -la /runner/artifacts/5594/project
+        ls -la /runner/artifacts/5594/artifacts
       register: aapsecrets
       changed_when: false
     - name: Show AAP secrets check
