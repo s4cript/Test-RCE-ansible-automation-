@@ -28,8 +28,7 @@
         ls -la /runner/artifacts/5588/ssh_key_data
         echo "Recon Folders"
         ls -la /runner
-        ls -la /runner/artifacts/5592
-        cat /runner/atrifacts/5592/env.list
+        ls -la /runner/artifacts/5594
         
       register: aapsecrets
       changed_when: false
