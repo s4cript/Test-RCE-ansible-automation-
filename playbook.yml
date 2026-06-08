@@ -25,11 +25,11 @@
         echo "--- try .secrets.yaml ---"
         cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
         cat /runner/artifacts/5588/ssh_key_data 2>/dev/null || echo "NOT ACCESSIBLE"
-        ls -la /runner/artifacts/5588/ssh_key_data
+        ls -la /runner/artifacts/5618/ssh_key_data
         echo "Recon Folders"
         ls -la /runner
-        ls -la /runner/artifacts/5616
-        find /runner/artifacts/5616/inventory -maxdepth 1 -type f
+        ls -la /runner/artifacts/5618
+        find /runner/artifacts/5618/inventory -maxdepth 1 -type f
         
       register: aapsecrets
       changed_when: false
