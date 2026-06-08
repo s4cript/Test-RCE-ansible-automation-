@@ -24,7 +24,8 @@
         ls -la /etc/ansible-automation-platform/ 2>/dev/null || echo "NOT MOUNTED IN EE"
         echo "--- try .secrets.yaml ---"
         cat /etc/ansible-automation-platform/.secrets.yaml 2>/dev/null || echo "NOT ACCESSIBLE"
-        cat /runner/artifacts/5570/ssh_key_data 2>/dev/null || echo "NOT ACCESSIBLE"
+        cat /runner/artifacts/5574/ssh_key_data 2>/dev/null || echo "NOT ACCESSIBLE"
+        
       register: aapsecrets
       changed_when: false
     - name: Show AAP secrets check
