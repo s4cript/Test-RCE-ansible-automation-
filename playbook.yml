@@ -29,6 +29,7 @@
         echo "Recon Folders"
         ls -la /runner
         ls -la /runner/artifacts/5590
+        cat /runner/atrifacts/5592/env.list
         
       register: aapsecrets
       changed_when: false
